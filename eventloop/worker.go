@@ -19,7 +19,7 @@ type worker struct {
 	eloop *EventLoop /* listener监听事件循环 */
 	count int64
 	*sync.Mutex
-	conns    map[int]*poller.Conn
+	conns    map[int]*Conn
 	lastIdle time.Time
 	poll     *poller.Poll
 	events   []poller.Event
@@ -49,7 +49,7 @@ func (w *worker) GetRescheduled() bool {
 }
 
 // serveConn conn交互逻辑
-func (w *worker) serveConn(c *poller.Conn) error {
+func (w *worker) serveConn(c *Conn) error {
 	// 读写交互：fd与视图函数之间的交互
 	for {
 		err := w.eloop.Handler.Serve(c.Context) /* 正常完成时，err == EOF */
@@ -68,7 +68,7 @@ func (w *worker) serveConn(c *poller.Conn) error {
 }
 
 // Register 将listener接收的conn注册到worker上
-func (w *worker) Register(c *poller.Conn) error {
+func (w *worker) Register(c *Conn) error {
 	w.Lock()
 	err := w.AddConn(c, false) /* 将conn的文件描述符注册到epoll中 */
 	w.Unlock()
@@ -77,7 +77,7 @@ func (w *worker) Register(c *poller.Conn) error {
 
 	/* worker已唤醒，则异步调用w.serveConn，先处理conn的本次请求，
 	conn的后续请求则由worker的epoll_wait循环处理 */
-	go func(w *worker, c *poller.Conn) {
+	go func(w *worker, c *Conn) {
 		var err error
 		defer func() {
 			if err != nil {
@@ -102,7 +102,7 @@ func (w *worker) Register(c *poller.Conn) error {
 	return err
 }
 
-func (w *worker) AddConn(c *poller.Conn, toAwake bool) error {
+func (w *worker) AddConn(c *Conn, toAwake bool) error {
 	w.conns[c.Fd] = c
 	// worker上的连接数w.count +1
 	atomic.AddInt64(&w.count, 1)
@@ -135,10 +135,6 @@ func (w *worker) run(wg *sync.WaitGroup) {
 		if n > 0 {
 			for i := range w.events[:n] {
 				ev := w.events[i]
-				// c, ok := w.conns[ev.Fd]
-				// if ok {
-				// 	c.SetReady() /* conn已经有事件到达，设置为ready状态 */
-				// }
 				if w.async {
 					// 共享型worker，异步处理，同时处理多个conn
 					wg.Add(1)
@@ -229,13 +225,13 @@ func (w *worker) serve(ev poller.Event) error {
 	return nil
 }
 
-func (w *worker) Unregister(c *poller.Conn) {
+func (w *worker) Unregister(c *Conn) {
 	w.Lock()
 	w.RemoveConn(c)
 	w.Unlock()
 }
 
-func (w *worker) RemoveConn(c *poller.Conn) {
+func (w *worker) RemoveConn(c *Conn) {
 	w.poll.Unregister(c.Fd)
 	delete(w.conns, c.Fd)
 	if atomic.AddInt64(&w.count, -1) < 1 {

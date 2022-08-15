@@ -9,17 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/moqsien/niogin/eventloop"
-	"github.com/moqsien/niogin/poller"
+	"github.com/moqsien/niogin/toolkit"
 )
-
-func strSliceContains(ss []string, s string) bool {
-	for _, v := range ss {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
 
 type Engine struct {
 	*gin.Engine
@@ -74,7 +65,7 @@ func (server *Engine) serve(l net.Listener, config *tls.Config) error {
 		}
 		var h = &eventloop.ConnHandler{}
 
-		upgradeFunc := func(conn net.Conn) (poller.Context, error) {
+		upgradeFunc := func(conn net.Conn) (eventloop.Context, error) {
 			if config != nil {
 				tlsConn := tls.Server(conn, config)
 				if err := tlsConn.Handshake(); err != nil {
@@ -90,7 +81,7 @@ func (server *Engine) serve(l net.Listener, config *tls.Config) error {
 
 		h.SetUpgrade(upgradeFunc)
 
-		serveFunc := func(context poller.Context) error {
+		serveFunc := func(context eventloop.Context) error {
 			ctx := context.(*Context)
 			var err error
 			var req *http.Request
@@ -209,7 +200,7 @@ func (server *Engine) ServeTLS(l net.Listener, certFile, keyFile string) error {
 	if config == nil {
 		config = &tls.Config{}
 	}
-	if !strSliceContains(config.NextProtos, "http/1.1") {
+	if !toolkit.StrSliceContains(config.NextProtos, "http/1.1") {
 		config.NextProtos = append(config.NextProtos, "http/1.1")
 	}
 	configHasCert := len(config.Certificates) > 0 || config.GetCertificate != nil

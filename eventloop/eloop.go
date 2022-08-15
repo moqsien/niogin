@@ -26,7 +26,7 @@ var ErrListener = errors.New("Listener must be not nil")
 // methods after a call to Close.
 var ErrServerClosed = errors.New("Server closed")
 
-type List []*poller.Conn
+type List []*Conn
 
 func (l List) Len() int { return len(l) }
 func (l List) Less(i, j int) bool {
@@ -49,7 +49,7 @@ func (s *otherLoop) Serve(l net.Listener) (err error) {
 		}
 		go func(c net.Conn) {
 			var err error
-			var context poller.Context
+			var context Context
 			if context, err = s.Handler.Upgrade(c); err != nil {
 				c.Close()
 				return
@@ -198,7 +198,7 @@ func (eloop *EventLoop) Serve(l net.Listener) (err error) {
 			Mutex:  &sync.Mutex{},
 			index:  i,                                         /* worker索引 */
 			eloop:  eloop,                                     /* listener监听的事件循环 */
-			conns:  make(map[int]*poller.Conn),                /* 连接列表 */
+			conns:  make(map[int]*Conn),                       /* 连接列表 */
 			poll:   p,                                         /* epoll对象封装 */
 			events: make([]poller.Event, 0x400),               /* fd列表，也就是conn列表，初始长度1024 */
 			async:  async,                                     /* 是否异步处理job */
@@ -276,7 +276,7 @@ func (eloop *EventLoop) accept() (err error) {
 	// 选择一个worker，优先选择空闲的非共享型worker，其次是连接数最少的共享型worker
 	w := eloop.assignWorker()
 	// 将新连接注册到上面选择的worker的poll上，并唤醒worker
-	err = w.Register(&poller.Conn{W: w, Fd: nfd, Raddr: raddr, Laddr: eloop.addr, Mutex: &sync.Mutex{}})
+	err = w.Register(&Conn{W: w, Fd: nfd, Raddr: raddr, Laddr: eloop.addr, Mutex: &sync.Mutex{}})
 	eloop.Unlock()
 
 	return

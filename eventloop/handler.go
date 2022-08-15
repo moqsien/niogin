@@ -5,8 +5,6 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
-
-	"github.com/moqsien/niogin/poller"
 )
 
 const (
@@ -21,13 +19,13 @@ var ErrServeFunc = errors.New("Serve function must be not nil")
 
 type Handler interface {
 	// Upgrade upgrades the net.Conn to a Context.
-	Upgrade(net.Conn) (poller.Context, error)
+	Upgrade(net.Conn) (Context, error)
 	// Serve should serve a single request with the Context.
-	Serve(poller.Context) error
+	Serve(Context) error
 }
 
-type UpgradeFunc func(net.Conn) (poller.Context, error)
-type ServeFunc func(poller.Context) error
+type UpgradeFunc func(net.Conn) (Context, error)
+type ServeFunc func(Context) error
 
 // NewHandler returns a new Handler.
 func NewHandler(upgrade UpgradeFunc, serve ServeFunc) Handler {
@@ -53,7 +51,7 @@ func (h *ConnHandler) SetServe(serve ServeFunc) *ConnHandler {
 }
 
 // Upgrade implements the Handler Upgrade method.
-func (h *ConnHandler) Upgrade(conn net.Conn) (poller.Context, error) {
+func (h *ConnHandler) Upgrade(conn net.Conn) (Context, error) {
 	if h.upgrade == nil {
 		return nil, ErrUpgradeFunc
 	}
@@ -61,7 +59,7 @@ func (h *ConnHandler) Upgrade(conn net.Conn) (poller.Context, error) {
 }
 
 // Serve implements the Handler Serve method.
-func (h *ConnHandler) Serve(ctx poller.Context) error {
+func (h *ConnHandler) Serve(ctx Context) error {
 	if h.serve == nil {
 		return ErrServeFunc
 	}
@@ -123,7 +121,7 @@ func (h *DataHandler) SetUpgrade(upgrade func(net.Conn) (net.Conn, error)) {
 }
 
 // Upgrade sets the net.Conn to a Context.
-func (h *DataHandler) Upgrade(conn net.Conn) (poller.Context, error) {
+func (h *DataHandler) Upgrade(conn net.Conn) (Context, error) {
 	if h.BufferSize < 1 {
 		h.BufferSize = bufferSize
 	}
@@ -150,7 +148,7 @@ func (h *DataHandler) Upgrade(conn net.Conn) (poller.Context, error) {
 }
 
 // Serve should serve a single request with the Context ctx.
-func (h *DataHandler) Serve(ctx poller.Context) error {
+func (h *DataHandler) Serve(ctx Context) error {
 	c := ctx.(*context)
 	var conn = c.conn
 	var n int

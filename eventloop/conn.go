@@ -1,4 +1,4 @@
-package poller
+package eventloop
 
 import (
 	"errors"
