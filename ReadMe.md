@@ -92,4 +92,13 @@ func main() {
 
 ### Design
 
-![eventloop]("https://github.com/moqsien/niogin/docs/design.png")
+### Design
+
+![eventloop](https://github.com/moqsien/niogin/blob/main/docs/design.png)
+
+1、Listener放在独立的epoll_wait中，监听新的连接请求，accept获得新的连接后，分发到workers(工作循环)监听新连接的读写事件；
+2、工作循环(workers)分为两类，即非共享型和共享型；
+3、非共享型worker，在一个时刻只绑定和监听一个新连接；
+4、共享型worker，在同一个时刻可以绑定和监听多个新连接，允许同时处理固定多个读写事件任务；
+5、新连接分发逻辑是：优先分发到空闲的非共享型worker上，如果没有空闲的非共享型worker，则会优先分发到已绑定的连接数最少的共享型worker上；
+6、每个连接在触发读事件时，该连接的请求数+1；会通过调度来把共享型worker上请求数排名靠前的连接交换到非共享型worker上；这样可以优先用性能更好的非共享型worker处理请求频繁的连接；
