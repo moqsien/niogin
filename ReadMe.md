@@ -42,7 +42,7 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"test": a})
 	})
 	err := router.Start("localhost:8080")
-    if err != nil {
+	if err != nil {
 		log.Fatal(err)
 		return
 	}
@@ -61,7 +61,7 @@ import (
 )
 
 func main() {
-    certFile, keyFile string := "", ""
+	certFile, keyFile string := "", ""
 	router := httpserver.New()
 	router.SetPoll(true)  // use epoll, otherwise use official http server which is similar to Gin.
 	router.GET("/test", func(c *gin.Context) {
@@ -72,7 +72,7 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"test": a})
 	})
 	err := router.StartTLS("localhost:8080", certFile, keyFile)
-    if err != nil {
+	if err != nil {
 		log.Fatal(err)
 		return
 	}
