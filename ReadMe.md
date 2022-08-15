@@ -92,8 +92,6 @@ func main() {
 
 ### Design
 
-### Design
-
 ![eventloop](https://github.com/moqsien/niogin/blob/main/docs/design.png)
 
 1、Listener放在独立的epoll_wait中，监听新的连接请求，accept获得新的连接后，分发到workers(工作循环)监听新连接的读写事件；
